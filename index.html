@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>BLE 제어 인터페이스</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+    #log {
+      margin-top: 10px;
+      white-space: pre-wrap;
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 6px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h2>📡 BLE 장치 제어</h2>
+  <button onclick="connect()">🔗 BLE 연결</button>
+  <button onclick="send('>V1')">전압 읽기</button>
+  <button onclick="send('>T1')">온도 읽기</button>
+  <button onclick="send('>B1')">버저 ON</button>
+  <button onclick="send('>B0')">버저 OFF</button>
+  <button onclick="send('>R1')">릴레이 ON</button>
+  <button onclick="send('>R0')">릴레이 OFF</button>
+
+  <div id="log"></div>
+
+  <script>
+    let device, server, service, characteristic;
+
+    async function connect() {
+      try {
+        device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
+        });
+
+        server = await device.gatt.connect();
+        service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+
+        const characteristics = await service.getCharacteristics();
+        for (const c of characteristics) {
+          const props = c.properties;
+          if (props.write || props.writeWithoutResponse) {
+            characteristic = c;
+            break;
+          }
+        }
+
+        if (!characteristic) {
+          log("❌ 쓰기 가능한 characteristic을 찾지 못했습니다.");
+          return;
+        }
+
+        log("✅ BLE 연결 성공: " + device.name);
+      } catch (e) {
+        if (e.name === 'NotFoundError') {
+          log("ℹ️ BLE 장치 선택이 취소되었습니다.");
+        } else {
+          log("❌ 연결 실패: " + e);
+        }
+      }
+    }
+
+    async function send(cmd) {
+      if (!characteristic || !device || !device.gatt.connected) {
+        log("⛔ 먼저 BLE에 연결하세요.");
+        return;
+      }
+
+      const encoder = new TextEncoder();
+      try {
+        await characteristic.writeValue(encoder.encode(cmd + '\n'));
+        log("📤 전송 성공: " + cmd);
+      } catch (err) {
+        log("❌ 전송 실패: " + err);
+      }
+    }
+
+    function log(msg) {
+      const logEl = document.getElementById('log');
+      logEl.textContent += msg + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // ✅ PWA용 Service Worker 등록
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log("✅ Service Worker 등록됨"))
+        .catch(err => console.error("❌ Service Worker 등록 실패:", err));
+    }
+  </script>
+</body>
+</html>
+
