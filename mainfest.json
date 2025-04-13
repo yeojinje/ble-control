@@ -1,0 +1,20 @@
+{
+  "name": "BLE 제어 앱",
+  "short_name": "BLE제어",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "description": "RP2040 장치 제어용 Web BLE 앱",
+  "icons": [
+    {
+      "src": "icon1-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon2-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
